@@ -18,28 +18,24 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
-        id: npm-cache
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install Dependencies
         run: |
-          if [ -e package-lock.json ]; then
-            echo "package-lock.json found, using npm ci"
-            npm ci --prefer-offline --no-audit
-          else
-            echo "No package-lock.json found, using npm install"
             npm install --no-audit
-          fi
+
+      - name: Cache Trivy vulnerability database
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/trivy
+          key: ${{ runner.os }}-trivy-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-trivy-
 
       - name: Run Trivy vulnerability scan
         run: |
-          docker run --rm -v ${{ github.workspace }}:/src aquasec/trivy:latest fs /src \
+          docker run --rm \
+            -v ${{ github.workspace }}:/src \
+            -v ~/.cache/trivy:/root/.cache/trivy \
+            aquasec/trivy:latest fs /src \
             --severity CRITICAL,HIGH \
             --ignore-unfixed \
             --scanners vuln \
@@ -47,7 +43,10 @@ jobs:
 
       - name: Run Trivy secret scan
         run: |
-          docker run --rm -v ${{ github.workspace }}:/src aquasec/trivy:latest fs /src \
+          docker run --rm \
+            -v ${{ github.workspace }}:/src \
+            -v ~/.cache/trivy:/root/.cache/trivy \
+            aquasec/trivy:latest fs /src \
             --scanners secret \
             --format table > trivy-secret-report.txt
 
