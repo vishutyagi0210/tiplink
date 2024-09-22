@@ -30,8 +30,10 @@ jobs:
       - name: Install Dependencies
         run: |
           if [ -e package-lock.json ]; then
-            npm ci --no-audit
+            echo "package-lock.json found, using npm ci"
+            npm ci --prefer-offline --no-audit
           else
+            echo "No package-lock.json found, using npm install"
             npm install --no-audit
           fi
 
