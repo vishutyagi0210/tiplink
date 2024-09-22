@@ -1,8 +1,9 @@
 name: Trivy Vulnerability and Secret Scan
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
+  push: 
+    branches: 
+      - temp
 
 jobs:
   trivy_scan:
@@ -17,9 +18,22 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install Dependencies
         run: |
+          if [ -e package-lock.json ]; then
+            npm ci --no-audit
+          else
             npm install --no-audit
+          fi
 
       - name: Run Trivy vulnerability scan
         run: |
