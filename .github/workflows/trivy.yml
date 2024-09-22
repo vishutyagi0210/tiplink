@@ -25,30 +25,33 @@ jobs:
       - name: Cache Trivy vulnerability database
         uses: actions/cache@v3
         with:
-          path: ~/.cache/trivy
+          path: ~/.trivy
           key: ${{ runner.os }}-trivy-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-trivy-
 
       - name: Run Trivy vulnerability scan
         run: |
+          mkdir -p ~/.trivy
           docker run --rm \
             -v ${{ github.workspace }}:/src \
-            -v ~/.cache/trivy:/root/.cache/trivy \
+            -v ~/.trivy:/root/.cache/trivy \
             aquasec/trivy:latest fs /src \
             --severity CRITICAL,HIGH \
             --ignore-unfixed \
             --scanners vuln \
             --format table > trivy-vuln-report.txt
+          sudo chown -R $(id -u):$(id -g) ~/.trivy
 
       - name: Run Trivy secret scan
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/src \
-            -v ~/.cache/trivy:/root/.cache/trivy \
+            -v ~/.trivy:/root/.cache/trivy \
             aquasec/trivy:latest fs /src \
             --scanners secret \
             --format table > trivy-secret-report.txt
+          sudo chown -R $(id -u):$(id -g) ~/.trivy
 
         # custom check
       - name: Check for outdated npm packages
